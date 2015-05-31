@@ -10,15 +10,13 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 
-public class Utility {
+public class Util {
 
 	/**
 	 * A lazy method for sending a message with proper formatting.
 	 * 
-	 * @param player
-	 *            The player to send the message to
-	 * @param s
-	 *            The message to send
+	 * @param player The player to send the message to
+	 * @param s The message to send
 	 */
 	public static void sendMessage(Player player, String s) {
 		player.sendMessage(ChatColor.BLUE + "" + ChatColor.BOLD + "[CircuitDetector] " + ChatColor.AQUA + s);
@@ -41,10 +39,10 @@ public class Utility {
 	 * Redstone related blocks include REDSTONE_WIRE, DIODE_BLOCK_OFF,
 	 * DIODE_BLOCK_ON, REDSTONE_TORCH_OFF, REDSTONE_TORCH_ON
 	 * 
-	 * @param b
-	 *            The block to check
+	 * @param b The block to check
 	 * @return if the block is a redstone related block or not
 	 */
+	
 	public static boolean isRedstone(Block b) {
 		if (b.getType() == Material.REDSTONE_WIRE || b.getType() == Material.DIODE_BLOCK_OFF || b.getType() == Material.DIODE_BLOCK_ON || b.getType() == Material.REDSTONE_TORCH_OFF
 				|| b.getType() == Material.REDSTONE_TORCH_ON || b.getType() == Material.PISTON_BASE || b.getType() == Material.PISTON_EXTENSION || b.getType() == Material.PISTON_MOVING_PIECE
@@ -57,10 +55,10 @@ public class Utility {
 	/**
 	 * Formats a location into a readable string.
 	 * 
-	 * @param loc
-	 *            The location to format
+	 * @param loc The location to format
 	 * @return the location in a readable string
 	 */
+	
 	public static String formatLocation(Location loc) {
 		return "[" + loc.getWorld().getName() + "; " + loc.getX() + ", " + loc.getY() + ", " + loc.getZ() + "]";
 	}
@@ -69,20 +67,18 @@ public class Utility {
 	 * Recursively destroys a circuit. Starting at the block, it looks for
 	 * neighboring blocks which redstone current can propagate to.<br>
 	 * If a block is beside it and would be powered, then the method is called
-	 * but with allowBlockBreak = false,<br>
-	 * which prevents further blocks from being broken, destroying the entire
-	 * world. (Boy is this hard to explain :P)
+	 * but with allowBlockBreak = false, which prevents further blocks from being broken, 
+	 * destroying the entire world. (Boy is this hard to explain :P)
 	 * 
-	 * @param b
-	 *            The place to start recursively destroying the circuit
-	 * @param allowBlockBreak
-	 *            Whether or not the last block broken was solid or not. Should
-	 *            always be true, only the recursive method itself should ever
-	 *            input false.
+	 * @param b The place to start recursively destroying the circuit
+	 * @param allowBlockBreak Whether or not the last block broken was solid or
+	 *            not. Should always be true, only the recursive method itself
+	 *            should ever input false.
 	 */
+	
 	public static void destroyCircuit(Block b, boolean allowBlockBreak) {
 		b.getLocation().getWorld().createExplosion(b.getLocation(), 0);
-		if (Utility.isRedstone(b)) {
+		if (Util.isRedstone(b)) {
 			b.setType(Material.AIR);
 		}
 		for (BlockFace face : BlockFace.values()) {
@@ -90,11 +86,11 @@ public class Utility {
 				Block side = b.getRelative(face);
 				if (side.getType().isSolid() && allowBlockBreak) {
 					destroyCircuit(side, false);
-				} else if (Utility.isRedstone(side)) {
+				} else if (Util.isRedstone(side)) {
 					destroyCircuit(side, true);
 				}
 			}
 		}
-		
+
 	}
 }

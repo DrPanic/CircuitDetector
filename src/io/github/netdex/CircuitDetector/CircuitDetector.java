@@ -1,7 +1,8 @@
 package io.github.netdex.CircuitDetector;
 
-import io.github.netdex.CircuitDetector.listeners.ExistenceListener;
+import io.github.netdex.CircuitDetector.listeners.ExistenceTask;
 import io.github.netdex.CircuitDetector.listeners.RedstoneUpdateListener;
+import io.github.netdex.CircuitDetector.listeners.RefreshTask;
 
 import java.util.HashMap;
 import java.util.UUID;
@@ -15,18 +16,16 @@ import org.bukkit.scheduler.BukkitScheduler;
 
 public class CircuitDetector extends JavaPlugin implements Listener {
 	private FileConfiguration config;
-	// Logging players
-	public static HashMap<UUID, Boolean> LOGGING = new HashMap<UUID, Boolean>();
-	// Violations
-	public static HashMap<Location, Integer> VIOLATIONS = new HashMap<Location, Integer>();
-	// Destruction threshold
-	public static int THRESHOLD = 0;
-	// Refresh grace time
-	public static int REFRESH_TIME = 60;
+	
+	public HashMap<UUID, Boolean> playersLogging = new HashMap<UUID, Boolean>();
+	public HashMap<Location, Integer> violations = new HashMap<Location, Integer>();
+	
+	public int THRESHOLD = 0;
+	public int REFRESH_TIME = 60;
 
 	public void onEnable() {
 		getServer().getPluginManager().registerEvents(this, this);
-		getServer().getPluginManager().registerEvents(new RedstoneUpdateListener(VIOLATIONS), this);
+		getServer().getPluginManager().registerEvents(new RedstoneUpdateListener(this, violations), this);
 		
 		config = getConfig();
 
@@ -37,45 +36,22 @@ public class CircuitDetector extends JavaPlugin implements Listener {
 			REFRESH_TIME = config.getInt("refreshTime");
 		}
 		
-		// Register the CommandExecutor so commands are handled by the other
-		// class
-		this.getCommand("cd").setExecutor(new CommandManager());
+		// Handle commands in another class
+		this.getCommand("cd").setExecutor(new CommandManager(this));
 
-		// Clear all violations every 60 seconds by default, or however
-		// configured
+		// Set timers
 		BukkitScheduler scheduler = Bukkit.getServer().getScheduler();
-		scheduler.scheduleSyncRepeatingTask(this, new Runnable() {
-			@Override
-			public void run() {
-				try {
-					VIOLATIONS.clear();
-				} catch (Exception e) {}
-			}
-		}, 0L, REFRESH_TIME * 20L);
-		scheduler.scheduleSyncRepeatingTask(this, new ExistenceListener(this), 0L, 5L);
+		scheduler.scheduleSyncRepeatingTask(this, new RefreshTask(violations), 0L, REFRESH_TIME * 20L);
+		scheduler.scheduleSyncRepeatingTask(this, new ExistenceTask(this), 0L, 5L);
 	}
 
 	public void onDisable() {
+		// Cancel the timers
 		Bukkit.getServer().getScheduler().cancelAllTasks();
+		// Save configuration
 		config.set("threshold", THRESHOLD);
 		config.set("refreshTime", REFRESH_TIME);
 		saveConfig();
-
-		VIOLATIONS = null;
-		LOGGING = null;
-	}
-
-	/**
-	 * Simple getter to save time
-	 * 
-	 * @return a hashmap containing the violations
-	 */
-	public HashMap<Location, Integer> getViolations() {
-		return VIOLATIONS;
-	}
-
-	public static int getThreshold() {
-		return THRESHOLD;
 	}
 
 }

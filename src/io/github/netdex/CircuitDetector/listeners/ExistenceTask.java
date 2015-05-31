@@ -1,7 +1,7 @@
 package io.github.netdex.CircuitDetector.listeners;
 
 import io.github.netdex.CircuitDetector.CircuitDetector;
-import io.github.netdex.CircuitDetector.util.Utility;
+import io.github.netdex.CircuitDetector.util.Util;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -16,22 +16,20 @@ import org.bukkit.block.Block;
  * @param CircuitDetector
  *            plugin
  */
-public class ExistenceListener implements Runnable {
-	private CircuitDetector plugin;
+public class ExistenceTask implements Runnable {
+	private CircuitDetector cd;
 
-	public ExistenceListener(CircuitDetector plugin) {
-		this.plugin = plugin;
+	public ExistenceTask(CircuitDetector cd) {
+		this.cd = cd;
 	}
 
 	@Override
 	public void run() {
 		try {
-			for (Location loc : plugin.getViolations().keySet()) {
+			for (Location loc : cd.violations.keySet()) {
 				Block b = loc.getBlock();
-				if (!Utility.isRedstone(b)) {
-					plugin.getViolations().remove(loc); // Remove the violation
-														// if the block no
-														// longer exists
+				if (!Util.isRedstone(b)) {
+					cd.violations.remove(loc);
 				}
 			}
 		} catch (Throwable e) {
