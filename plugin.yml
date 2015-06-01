@@ -1,6 +1,6 @@
 name: CircuitDetector
 main: io.github.netdex.CircuitDetector.CircuitDetector
-version: 1.3
+version: 1.4
 
 commands:
   cd:

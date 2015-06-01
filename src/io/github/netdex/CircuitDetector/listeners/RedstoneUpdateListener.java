@@ -33,17 +33,17 @@ public class RedstoneUpdateListener implements Listener {
 	public void onBlockRedstoneChange(BlockRedstoneEvent event){
 		Block b = event.getBlock();
 		if(event.getOldCurrent() == 0){
-			createViolation(b);
+			registerViolation(b);
 		}
 	}
 	
 	@EventHandler
 	public void onPistonExtendEvent(BlockPistonExtendEvent event){
 		Block b = event.getBlock();
-		createViolation(b);
+		registerViolation(b);
 	}
 
-	public void createViolation(Block b){
+	public void registerViolation(Block b){
 		if(Util.isRedstone(b)){
 			Location loc = b.getLocation();
 			

@@ -38,7 +38,7 @@ public class CommandManager implements CommandExecutor {
 			String arg = args[0];
 
 			if (arg.equalsIgnoreCase("help")) {
-				Util.sendMessage(player, "Help");
+				Util.sendMessage(player, "Circuit Detector v" + cd.getDescription().getVersion());
 				String[] help = new String[] { 
 						ChatColor.AQUA + "/cd stats " + ChatColor.BLUE + "| Gets statistics and other data", 
 						ChatColor.AQUA + "/cd log " + ChatColor.BLUE + "| Enables logging",

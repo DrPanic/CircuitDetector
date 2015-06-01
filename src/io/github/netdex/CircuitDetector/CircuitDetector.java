@@ -3,13 +3,18 @@ package io.github.netdex.CircuitDetector;
 import io.github.netdex.CircuitDetector.listeners.ExistenceTask;
 import io.github.netdex.CircuitDetector.listeners.RedstoneUpdateListener;
 import io.github.netdex.CircuitDetector.listeners.RefreshTask;
+import io.github.netdex.CircuitDetector.util.Util;
 
 import java.util.HashMap;
 import java.util.UUID;
 
+import net.gravitydevelopment.updater.Updater;
+import net.gravitydevelopment.updater.Updater.UpdateResult;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
@@ -43,6 +48,15 @@ public class CircuitDetector extends JavaPlugin implements Listener {
 		BukkitScheduler scheduler = Bukkit.getServer().getScheduler();
 		scheduler.scheduleSyncRepeatingTask(this, new RefreshTask(violations), 0L, REFRESH_TIME * 20L);
 		scheduler.scheduleSyncRepeatingTask(this, new ExistenceTask(this), 0L, 5L);
+		
+		Updater updater = new Updater(this, 84429, this.getFile(), Updater.UpdateType.DEFAULT, true);
+		if(updater.getResult() == UpdateResult.SUCCESS){
+			for(Player p : getServer().getOnlinePlayers()){
+				if(p.hasPermission("CircuitDetector.cd")){
+					Util.sendMessage(p, "Circuit Detector has updated to version \"" + updater.getLatestName() + "\"! Reload the server to load the new update.");
+				}
+			}
+		}
 	}
 
 	public void onDisable() {
