@@ -1,7 +1,11 @@
 package io.github.netdex.CircuitDetector;
 
-import io.github.netdex.CircuitDetector.util.Util;
+import static org.bukkit.ChatColor.AQUA;
+import static org.bukkit.ChatColor.BLUE;
+import static org.bukkit.ChatColor.RED;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.UUID;
 
 import org.bukkit.ChatColor;
@@ -11,6 +15,9 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+
+import io.github.netdex.CircuitDetector.util.Util;
+import io.github.netdex.CircuitDetector.util.Violation;
 
 /**
  * Handles all the commands of the plugin
@@ -51,41 +58,54 @@ public class CommandManager implements CommandExecutor {
 			else if (arg.equalsIgnoreCase("stats")) {
 				Util.sendMessage(player, "Statistics");
 				String[] stats = new String[] { 
-						ChatColor.AQUA + "Total Existing Violators: " + ChatColor.BLUE + cd.violations.size(),
-						ChatColor.AQUA + "Number of Players Currently Logging: " + ChatColor.BLUE + cd.playersLogging.size(),
+						ChatColor.AQUA + "Total Existing Violators: " + ChatColor.BLUE + cd.VIOLATIONS.size(),
+						ChatColor.AQUA + "Number of Players Currently Logging: " + ChatColor.BLUE + cd.LOGGING.size(),
 						ChatColor.RED + "That's it for now, more to be added in the future"
 				};
 				player.sendMessage(stats);
 				return true;
 			} else if (arg.equalsIgnoreCase("log")) {
 				UUID playerUUID = player.getUniqueId();
-				if (cd.playersLogging.get(playerUUID) == null || !cd.playersLogging.get(playerUUID)) {
-					cd.playersLogging.put(player.getUniqueId(), true);
+				if (CircuitDetector.LOGGING.get(playerUUID) == null || !cd.LOGGING.get(playerUUID)) {
+					CircuitDetector.LOGGING.put(player.getUniqueId(), true);
 					Util.sendMessage(player, "Logging enabled.");
 				} else {
-					cd.playersLogging.put(player.getUniqueId(), false);
+					CircuitDetector.LOGGING.put(player.getUniqueId(), false);
 					Util.sendMessage(player, "Logging disabled.");
 				}
 
 				return true;
 			}
 			else if (arg.equalsIgnoreCase("unlog")) {
-				cd.playersLogging.put(player.getUniqueId(), false);
+				CircuitDetector.LOGGING.put(player.getUniqueId(), false);
 				Util.sendMessage(player, "Logging disabled.");
 				return true;
 			}
 			else if (arg.equalsIgnoreCase("list")) {
 				Util.sendMessage(player, "Violators:");
 
-				if (cd.violations.size() == 0) {
+				if (CircuitDetector.VIOLATIONS.size() == 0) {
 					player.sendMessage(ChatColor.BLUE + "No violations.");
 					return true;
 				} else {
-					int c = 1;
-					for (Location loc : cd.violations.keySet()) {
-						Block b = loc.getBlock();
-						player.sendMessage(ChatColor.BLUE + "" + c + ". " + ChatColor.AQUA + "\"" + b.getType().name() + "\" at " + ChatColor.GRAY + Util.formatLocation(loc) + ChatColor.DARK_RED
-								+ " x" + cd.violations.get(loc));
+					Collections.sort(CircuitDetector.VIOLATIONS, new Comparator<Violation>(){
+
+						@Override
+						public int compare(Violation a, Violation b) {
+							if(a.getInstances() > b.getInstances())
+								return -1;
+							if(a.getInstances() < b.getInstances())
+								return 1;
+							return 0;
+						}
+						
+					});
+					int c = 0;
+					for (Violation v : CircuitDetector.VIOLATIONS) {
+						if(c >= 10)
+							break;
+						Block b = v.getLocation().getBlock();
+						v.getLogMessage().send(player);
 						c++;
 					}
 				}
@@ -128,8 +148,8 @@ public class CommandManager implements CommandExecutor {
 				if (args.length < 3) {
 					Util.sendMessage(player, "Variables [you must reload after changing!]");
 					String[] vars = new String[]{
-							ChatColor.AQUA + "threshold: " + ChatColor.RED + " x" + cd.THRESHOLD + " " + ChatColor.BLUE + ": The amount of violations a block is allowed to have before it is destroyed.",
-							ChatColor.AQUA + "refresh: " + ChatColor.RED + " " + cd.REFRESH_TIME + "s " + ChatColor.BLUE + ": The amount of time in seconds to periodically clear all violations."
+							AQUA + "threshold: " + RED + " x" + cd.THRESHOLD + " " + BLUE + ": The amount of violations a block is allowed to have before it is destroyed.",
+							AQUA + "refresh: " + RED + " " + cd.REFRESH_TIME + "s " + BLUE + ": The amount of time in seconds to periodically clear all violations."
 					};
 					player.sendMessage(vars);
 					return true;

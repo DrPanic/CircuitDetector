@@ -1,15 +1,8 @@
 package io.github.netdex.CircuitDetector;
 
-import io.github.netdex.CircuitDetector.listeners.ExistenceTask;
-import io.github.netdex.CircuitDetector.listeners.RedstoneUpdateListener;
-import io.github.netdex.CircuitDetector.listeners.RefreshTask;
-import io.github.netdex.CircuitDetector.util.Util;
-
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.UUID;
-
-import net.gravitydevelopment.updater.Updater;
-import net.gravitydevelopment.updater.Updater.UpdateResult;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -19,26 +12,35 @@ import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
 
+import io.github.netdex.CircuitDetector.listeners.ExistenceTask;
+import io.github.netdex.CircuitDetector.listeners.RedstoneUpdateListener;
+import io.github.netdex.CircuitDetector.listeners.RefreshTask;
+import io.github.netdex.CircuitDetector.util.Util;
+import io.github.netdex.CircuitDetector.util.Violation;
+import net.gravitydevelopment.updater.Updater;
+import net.gravitydevelopment.updater.Updater.UpdateResult;
+
 public class CircuitDetector extends JavaPlugin implements Listener {
-	private FileConfiguration config;
 	
-	public HashMap<UUID, Boolean> playersLogging = new HashMap<UUID, Boolean>();
-	public HashMap<Location, Integer> violations = new HashMap<Location, Integer>();
+	public static FileConfiguration CONFIG;
+	
+	public static HashMap<UUID, Boolean> LOGGING = new HashMap<UUID, Boolean>();
+	public static ArrayList<Violation> VIOLATIONS = new ArrayList<Violation>();
 	
 	public int THRESHOLD = 0;
 	public int REFRESH_TIME = 60;
 
 	public void onEnable() {
 		getServer().getPluginManager().registerEvents(this, this);
-		getServer().getPluginManager().registerEvents(new RedstoneUpdateListener(this, violations), this);
+		getServer().getPluginManager().registerEvents(new RedstoneUpdateListener(this), this);
 		
-		config = getConfig();
+		CONFIG = getConfig();
 
-		if (config.get("threshold") != null) {
-			THRESHOLD = config.getInt("threshold");
+		if (CONFIG.get("threshold") != null) {
+			THRESHOLD = CONFIG.getInt("threshold");
 		}
-		if (config.get("refreshTime") != null) {
-			REFRESH_TIME = config.getInt("refreshTime");
+		if (CONFIG.get("refreshTime") != null) {
+			REFRESH_TIME = CONFIG.getInt("refreshTime");
 		}
 		
 		// Handle commands in another class
@@ -46,7 +48,7 @@ public class CircuitDetector extends JavaPlugin implements Listener {
 
 		// Set timers
 		BukkitScheduler scheduler = Bukkit.getServer().getScheduler();
-		scheduler.scheduleSyncRepeatingTask(this, new RefreshTask(violations), 0L, REFRESH_TIME * 20L);
+		scheduler.scheduleSyncRepeatingTask(this, new RefreshTask(), 0L, REFRESH_TIME * 20L);
 		scheduler.scheduleSyncRepeatingTask(this, new ExistenceTask(this), 0L, 5L);
 		
 		Updater updater = new Updater(this, 84429, this.getFile(), Updater.UpdateType.DEFAULT, true);
@@ -63,9 +65,18 @@ public class CircuitDetector extends JavaPlugin implements Listener {
 		// Cancel the timers
 		Bukkit.getServer().getScheduler().cancelAllTasks();
 		// Save configuration
-		config.set("threshold", THRESHOLD);
-		config.set("refreshTime", REFRESH_TIME);
+		CONFIG.set("threshold", THRESHOLD);
+		CONFIG.set("refreshTime", REFRESH_TIME);
 		saveConfig();
+	}
+	
+	public static Violation getViolation(Location loc){
+		for(Violation v : VIOLATIONS){
+			if(v.getLocation().equals(loc))
+				return v;
+			
+		}
+		return null;
 	}
 
 }

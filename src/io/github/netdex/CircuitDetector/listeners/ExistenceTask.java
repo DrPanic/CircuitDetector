@@ -1,10 +1,10 @@
 package io.github.netdex.CircuitDetector.listeners;
 
+import org.bukkit.block.Block;
+
 import io.github.netdex.CircuitDetector.CircuitDetector;
 import io.github.netdex.CircuitDetector.util.Util;
-
-import org.bukkit.Location;
-import org.bukkit.block.Block;
+import io.github.netdex.CircuitDetector.util.Violation;
 
 /**
  * Used to make sure violators stored in the violators ArrayList still exist.<br>
@@ -26,10 +26,12 @@ public class ExistenceTask implements Runnable {
 	@Override
 	public void run() {
 		try {
-			for (Location loc : cd.violations.keySet()) {
-				Block b = loc.getBlock();
+			for (int i = 0; i < CircuitDetector.VIOLATIONS.size(); i++) {
+				Violation v = CircuitDetector.VIOLATIONS.get(i);
+				Block b = v.getLocation().getBlock();
 				if (!Util.isRedstone(b)) {
-					cd.violations.remove(loc);
+					CircuitDetector.VIOLATIONS.remove(v);
+					i--;
 				}
 			}
 		} catch (Throwable e) {

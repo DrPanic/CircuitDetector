@@ -1,13 +1,16 @@
 package io.github.netdex.CircuitDetector.listeners;
 
-import io.github.netdex.CircuitDetector.CircuitDetector;
-import io.github.netdex.CircuitDetector.util.Util;
+import static org.bukkit.ChatColor.AQUA;
+import static org.bukkit.ChatColor.BLUE;
+import static org.bukkit.ChatColor.DARK_GRAY;
+import static org.bukkit.ChatColor.DARK_RED;
+import static org.bukkit.ChatColor.GRAY;
+import static org.bukkit.ChatColor.ITALIC;
+import static org.bukkit.ChatColor.UNDERLINE;
 
-import java.util.HashMap;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -16,17 +19,19 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
 
+import io.github.netdex.CircuitDetector.CircuitDetector;
+import io.github.netdex.CircuitDetector.util.Util;
+import io.github.netdex.CircuitDetector.util.Violation;
+import mkremins.fanciful.FancyMessage;
 /**
  * A listener which listens for changes in redstone events, and then adds a violation
  */
 public class RedstoneUpdateListener implements Listener {
 	
 	private CircuitDetector cd;
-	private HashMap<Location, Integer> VIOLATIONS;
 	
-	public RedstoneUpdateListener(CircuitDetector cd, HashMap<Location, Integer> violations){
+	public RedstoneUpdateListener(CircuitDetector cd){
 		this.cd = cd;
-		this.VIOLATIONS = violations;
 	}
 	
 	@EventHandler
@@ -42,42 +47,47 @@ public class RedstoneUpdateListener implements Listener {
 		Block b = event.getBlock();
 		registerViolation(b);
 	}
+	
+	@EventHandler
+	public void onPlayerLeave(org.bukkit.event.player.PlayerQuitEvent event){
+		Player player = event.getPlayer();
+		CircuitDetector.LOGGING.remove(player.getUniqueId());
+	}
 
 	public void registerViolation(Block b){
 		if(Util.isRedstone(b)){
 			Location loc = b.getLocation();
 			
 			// If this violation is new, give it a count of 1
-			if(VIOLATIONS.get(loc) == null)
-				VIOLATIONS.put(b.getLocation(), 1);
+			Violation v;
+			if((v = CircuitDetector.getViolation(loc)) == null){
+				v = new Violation(loc, System.currentTimeMillis());
+				CircuitDetector.VIOLATIONS.add(v);
+			}
 			// Add 1 to the violation count
 			else
-				VIOLATIONS.put(b.getLocation(), VIOLATIONS.get(loc) + 1);
+				v.addInstance();
 			
 			// Send a message to all players who have logging enabled
-			for(UUID uuid : cd.playersLogging.keySet()){
-				if(cd.playersLogging.get(uuid)){ 
+			for(UUID uuid : CircuitDetector.LOGGING.keySet()){
+				if(CircuitDetector.LOGGING.get(uuid)){ 
 					Player player = Bukkit.getPlayer(uuid);
 					
-					String formattedLocation = Util.formatLocation(b.getLocation());
-					String msg = ChatColor.BLUE + Util.getDate() + ChatColor.DARK_GRAY + " : " + ChatColor.AQUA + "\"" + ChatColor.ITALIC + b.getType().name() 
-							+ ChatColor.AQUA + "\" at " + ChatColor.GRAY + formattedLocation 
-							+ ChatColor.DARK_RED + " x" + VIOLATIONS.get(b.getLocation());
-					player.sendMessage(msg);
+					v.getLogMessage().send(player);;
 				}
 			}
 			
 			// If the threshold is passed, destroy the circuit
-			if(VIOLATIONS.get(b.getLocation()) > cd.THRESHOLD && cd.THRESHOLD != 0){
+			if(v.getInstances() > cd.THRESHOLD && cd.THRESHOLD != 0){
 				Util.destroyCircuit(b, true);
 				
-				for(UUID uuid : cd.playersLogging.keySet()){
-					if(cd.playersLogging.get(uuid)){ 
+				for(UUID uuid : CircuitDetector.LOGGING.keySet()){
+					if(CircuitDetector.LOGGING.get(uuid)){ 
 						Player player = Bukkit.getPlayer(uuid);
 						
 						String formattedLocation = Util.formatLocation(b.getLocation());
-						String msg = ChatColor.BLUE + Util.getDate() + ChatColor.DARK_GRAY + " : " + ChatColor.AQUA + 
-								"Circuit has been destroyed at " + ChatColor.GRAY + formattedLocation + ChatColor.AQUA + ".";
+						String msg = BLUE + Util.getDate() + DARK_GRAY + " : " + AQUA + 
+								"Circuit has been destroyed at " + GRAY + formattedLocation + AQUA + ".";
 						
 						player.sendMessage(msg);
 					}

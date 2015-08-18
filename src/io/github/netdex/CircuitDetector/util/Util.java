@@ -44,9 +44,20 @@ public class Util {
 	 */
 	
 	public static boolean isRedstone(Block b) {
-		if (b.getType() == Material.REDSTONE_WIRE || b.getType() == Material.DIODE_BLOCK_OFF || b.getType() == Material.DIODE_BLOCK_ON || b.getType() == Material.REDSTONE_TORCH_OFF
-				|| b.getType() == Material.REDSTONE_TORCH_ON || b.getType() == Material.PISTON_BASE || b.getType() == Material.PISTON_EXTENSION || b.getType() == Material.PISTON_MOVING_PIECE
-				|| b.getType() == Material.PISTON_STICKY_BASE) {
+		if (b.getType() == Material.REDSTONE_WIRE 
+				|| b.getType() == Material.DIODE
+				|| b.getType() == Material.DIODE_BLOCK_OFF 
+				|| b.getType() == Material.DIODE_BLOCK_ON 
+				|| b.getType() == Material.REDSTONE_TORCH_OFF
+				|| b.getType() == Material.REDSTONE_TORCH_ON 
+				|| b.getType() == Material.REDSTONE_COMPARATOR
+				|| b.getType() == Material.REDSTONE_COMPARATOR_OFF
+				|| b.getType() == Material.REDSTONE_COMPARATOR_ON
+				|| b.getType() == Material.PISTON_BASE 
+				|| b.getType() == Material.PISTON_EXTENSION 
+				|| b.getType() == Material.PISTON_MOVING_PIECE
+				|| b.getType() == Material.PISTON_STICKY_BASE
+			) {
 			return true;
 		}
 		return false;
