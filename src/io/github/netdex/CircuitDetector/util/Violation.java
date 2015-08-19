@@ -1,12 +1,6 @@
 package io.github.netdex.CircuitDetector.util;
 
-import static org.bukkit.ChatColor.AQUA;
-import static org.bukkit.ChatColor.BLUE;
-import static org.bukkit.ChatColor.DARK_GRAY;
-import static org.bukkit.ChatColor.DARK_RED;
-import static org.bukkit.ChatColor.GRAY;
-import static org.bukkit.ChatColor.ITALIC;
-import static org.bukkit.ChatColor.UNDERLINE;
+import static org.bukkit.ChatColor.*;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
@@ -82,10 +76,14 @@ public class Violation {
 	}
 
 	public FancyMessage getLogMessage() {
-		return new FancyMessage(Util.formatLocation(loc))
-				.color(GRAY).style(UNDERLINE)
-				.tooltip("Click here to teleport")
-				.command("/tp " + loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ())
+		return new FancyMessage("[TP] ")
+					.color(GREEN).style(BOLD)
+					.tooltip("Teleport to " + Util.formatLocation(loc))
+					.command("/tp " + loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ())
+				.then("[KILL]")
+					.color(RED).style(BOLD)
+					.tooltip("Kill entire circuit")
+					.command("/cd kill " + loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ())
 				
 				.then(" : ")
 				.color(DARK_GRAY)
@@ -94,7 +92,7 @@ public class Violation {
 				.then("\"").color(AQUA)
 				.then(" x").color(DARK_RED)
 				.then(instances + "").color(DARK_RED)
-				.then("DIFF: ").color(ChatColor.GREEN)
+				.then(" DIFF: ").color(ChatColor.GREEN)
 				.then(timeDiff + "");
 		
 	}

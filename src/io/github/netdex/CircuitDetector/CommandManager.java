@@ -196,6 +196,7 @@ public class CommandManager implements CommandExecutor {
 			}
 			else if(arg.equalsIgnoreCase("isolate")){
 				if(CircuitDetector.VIOLATIONS.size() > 0){
+					Util.sendMessage(player, "Showing isolated circuits: ");
 					Collections.sort(CircuitDetector.VIOLATIONS, new Comparator<Violation>(){
 
 						@Override
