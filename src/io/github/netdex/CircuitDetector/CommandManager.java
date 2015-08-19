@@ -4,6 +4,7 @@ import static org.bukkit.ChatColor.AQUA;
 import static org.bukkit.ChatColor.BLUE;
 import static org.bukkit.ChatColor.RED;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.UUID;
@@ -18,6 +19,7 @@ import org.bukkit.entity.Player;
 
 import io.github.netdex.CircuitDetector.util.Util;
 import io.github.netdex.CircuitDetector.util.Violation;
+import io.github.netdex.CircuitDetector.util.ViolationGroup;
 
 /**
  * Handles all the commands of the plugin
@@ -51,22 +53,23 @@ public class CommandManager implements CommandExecutor {
 						ChatColor.AQUA + "/cd log " + ChatColor.BLUE + "| Enables logging",
 						ChatColor.AQUA + "/cd unlog " + ChatColor.BLUE + "| Disables logging", ChatColor.AQUA + "/cd list " + ChatColor.BLUE + "| Gets violators",
 						ChatColor.AQUA + "/cd kill (<x> <y> <z>)  " + ChatColor.BLUE + "| Kills any redstone circuit at XYZ by destroying it",
-						ChatColor.AQUA + "/cd set ((threshold/refresh) <int>)  " + ChatColor.BLUE + "| Sets some variables" };
+						ChatColor.AQUA + "/cd set ((threshold/refresh) <int>)  " + ChatColor.BLUE + "| Sets some variables",
+						ChatColor.AQUA + "/cd isolate " + ChatColor.BLUE + "| Attempts to group logging events into separate, isolated clocks."};
 				player.sendMessage(help);
 				return true;
 			}
 			else if (arg.equalsIgnoreCase("stats")) {
 				Util.sendMessage(player, "Statistics");
 				String[] stats = new String[] { 
-						ChatColor.AQUA + "Total Existing Violators: " + ChatColor.BLUE + cd.VIOLATIONS.size(),
-						ChatColor.AQUA + "Number of Players Currently Logging: " + ChatColor.BLUE + cd.LOGGING.size(),
+						ChatColor.AQUA + "Total Existing Violators: " + ChatColor.BLUE + CircuitDetector.VIOLATIONS.size(),
+						ChatColor.AQUA + "Number of Players Currently Logging: " + ChatColor.BLUE + CircuitDetector.LOGGING.size(),
 						ChatColor.RED + "That's it for now, more to be added in the future"
 				};
 				player.sendMessage(stats);
 				return true;
 			} else if (arg.equalsIgnoreCase("log")) {
 				UUID playerUUID = player.getUniqueId();
-				if (CircuitDetector.LOGGING.get(playerUUID) == null || !cd.LOGGING.get(playerUUID)) {
+				if (CircuitDetector.LOGGING.get(playerUUID) == null || !CircuitDetector.LOGGING.get(playerUUID)) {
 					CircuitDetector.LOGGING.put(player.getUniqueId(), true);
 					Util.sendMessage(player, "Logging enabled.");
 				} else {
@@ -88,6 +91,7 @@ public class CommandManager implements CommandExecutor {
 					player.sendMessage(ChatColor.BLUE + "No violations.");
 					return true;
 				} else {
+					// Sort the list of violations by the instances of the violation
 					Collections.sort(CircuitDetector.VIOLATIONS, new Comparator<Violation>(){
 
 						@Override
@@ -104,7 +108,6 @@ public class CommandManager implements CommandExecutor {
 					for (Violation v : CircuitDetector.VIOLATIONS) {
 						if(c >= 10)
 							break;
-						Block b = v.getLocation().getBlock();
 						v.getLogMessage().send(player);
 						c++;
 					}
@@ -148,8 +151,8 @@ public class CommandManager implements CommandExecutor {
 				if (args.length < 3) {
 					Util.sendMessage(player, "Variables [you must reload after changing!]");
 					String[] vars = new String[]{
-							AQUA + "threshold: " + RED + " x" + cd.THRESHOLD + " " + BLUE + ": The amount of violations a block is allowed to have before it is destroyed.",
-							AQUA + "refresh: " + RED + " " + cd.REFRESH_TIME + "s " + BLUE + ": The amount of time in seconds to periodically clear all violations."
+							AQUA + "threshold: " + RED + " x" + CircuitDetector.THRESHOLD + " " + BLUE + ": The amount of violations a block is allowed to have before it is destroyed.",
+							AQUA + "refresh: " + RED + " " + CircuitDetector.REFRESH_TIME + "s " + BLUE + ": The amount of time in seconds to periodically clear all violations."
 					};
 					player.sendMessage(vars);
 					return true;
@@ -170,11 +173,11 @@ public class CommandManager implements CommandExecutor {
 					if (variable.equalsIgnoreCase("threshold")) {
 						if(var == 0){
 							Util.sendMessage(player, "Threshold set to 0. Will not auto-destroy clocks.");
-							cd.THRESHOLD = 0;
+							CircuitDetector.THRESHOLD = 0;
 						}
 						else{
 							Util.sendMessage(player, String.format("Threshold set to %d.", var));
-							cd.THRESHOLD = var;
+							CircuitDetector.THRESHOLD = var;
 						}
 						return true;
 					} else if (variable.equalsIgnoreCase("refresh")) {
@@ -182,12 +185,49 @@ public class CommandManager implements CommandExecutor {
 						}
 						else{
 							Util.sendMessage(player, "Refresh time set to " + var + ".");
-							cd.REFRESH_TIME = var;
+							CircuitDetector.REFRESH_TIME = var;
 						}
 						return true;
 					} else {
 						Util.sendMessage(player, "Invalid variable. '/cd set' for usage.");
 					}
+				}
+				return true;
+			}
+			else if(arg.equalsIgnoreCase("isolate")){
+				if(CircuitDetector.VIOLATIONS.size() > 0){
+					Collections.sort(CircuitDetector.VIOLATIONS, new Comparator<Violation>(){
+
+						@Override
+						public int compare(Violation a, Violation b) {
+							if(a.getTimeDiff() > b.getTimeDiff())
+								return -1;
+							if(a.getTimeDiff() < b.getTimeDiff())
+								return 1;
+							return 0;
+						}
+						
+					});
+					ArrayList<ViolationGroup> isolated = new ArrayList<ViolationGroup>();
+					ViolationGroup base = new ViolationGroup();
+					base.addViolation(CircuitDetector.VIOLATIONS.get(0));
+					isolated.add(base);
+					for(int i = 0; i < CircuitDetector.VIOLATIONS.size() - 1; i++){
+						Violation v1 = CircuitDetector.VIOLATIONS.get(i);
+						Violation v2 = CircuitDetector.VIOLATIONS.get(i + 1);
+						long diff = Math.abs(v1.getTimeDiff() - v2.getTimeDiff());
+						if(diff > CircuitDetector.SIMILAR_CIRCUIT_DELAY_EPSILON){
+							isolated.add(new ViolationGroup());
+						}
+						isolated.get(isolated.size() - 1).addViolation(v2);
+					}
+					for(int i = 0; i < isolated.size(); i++){
+						ViolationGroup vg = isolated.get(i);
+						vg.getBaseViolation().getLogMessage().send(player);
+					}
+				}
+				else{
+					Util.sendMessage(player, "No violations to isolate.");
 				}
 				return true;
 			}

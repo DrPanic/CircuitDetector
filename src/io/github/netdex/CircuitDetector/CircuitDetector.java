@@ -22,17 +22,19 @@ import net.gravitydevelopment.updater.Updater.UpdateResult;
 
 public class CircuitDetector extends JavaPlugin implements Listener {
 	
+	public static final int SIMILAR_CIRCUIT_DELAY_EPSILON = 5;
+	
 	public static FileConfiguration CONFIG;
 	
 	public static HashMap<UUID, Boolean> LOGGING = new HashMap<UUID, Boolean>();
 	public static ArrayList<Violation> VIOLATIONS = new ArrayList<Violation>();
 	
-	public int THRESHOLD = 0;
-	public int REFRESH_TIME = 60;
+	public static int THRESHOLD = 0;
+	public static int REFRESH_TIME = 60;
 
 	public void onEnable() {
 		getServer().getPluginManager().registerEvents(this, this);
-		getServer().getPluginManager().registerEvents(new RedstoneUpdateListener(this), this);
+		getServer().getPluginManager().registerEvents(new RedstoneUpdateListener(), this);
 		
 		CONFIG = getConfig();
 
@@ -51,6 +53,7 @@ public class CircuitDetector extends JavaPlugin implements Listener {
 		scheduler.scheduleSyncRepeatingTask(this, new RefreshTask(), 0L, REFRESH_TIME * 20L);
 		scheduler.scheduleSyncRepeatingTask(this, new ExistenceTask(this), 0L, 5L);
 		
+		// Check for updates
 		Updater updater = new Updater(this, 84429, this.getFile(), Updater.UpdateType.DEFAULT, true);
 		if(updater.getResult() == UpdateResult.SUCCESS){
 			for(Player p : getServer().getOnlinePlayers()){
@@ -70,11 +73,15 @@ public class CircuitDetector extends JavaPlugin implements Listener {
 		saveConfig();
 	}
 	
+	/**
+	 * Maps a location to its respective violation
+	 * @param loc The location to map
+	 * @return the violation, or null of the location is not mapped to a violation
+	 */
 	public static Violation getViolation(Location loc){
 		for(Violation v : VIOLATIONS){
 			if(v.getLocation().equals(loc))
 				return v;
-			
 		}
 		return null;
 	}

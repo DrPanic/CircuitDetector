@@ -23,75 +23,89 @@ import io.github.netdex.CircuitDetector.CircuitDetector;
 import io.github.netdex.CircuitDetector.util.Util;
 import io.github.netdex.CircuitDetector.util.Violation;
 import mkremins.fanciful.FancyMessage;
+
 /**
- * A listener which listens for changes in redstone events, and then adds a violation
+ * A listener which listens for changes in redstone events, and then adds a
+ * violation
  */
 public class RedstoneUpdateListener implements Listener {
-	
-	private CircuitDetector cd;
-	
-	public RedstoneUpdateListener(CircuitDetector cd){
-		this.cd = cd;
+
+	public RedstoneUpdateListener() {
 	}
-	
+
 	@EventHandler
-	public void onBlockRedstoneChange(BlockRedstoneEvent event){
+	public void onBlockRedstoneChange(BlockRedstoneEvent event) {
 		Block b = event.getBlock();
-		if(event.getOldCurrent() == 0){
+		// Register a violation for the redstone related block, but only on falling edge
+		if (event.getOldCurrent() == 0) {
 			registerViolation(b);
 		}
 	}
-	
+
 	@EventHandler
-	public void onPistonExtendEvent(BlockPistonExtendEvent event){
+	public void onPistonExtendEvent(BlockPistonExtendEvent event) {
 		Block b = event.getBlock();
+		// Register a violation for the piston
 		registerViolation(b);
 	}
-	
+
 	@EventHandler
-	public void onPlayerLeave(org.bukkit.event.player.PlayerQuitEvent event){
+	public void onPlayerLeave(org.bukkit.event.player.PlayerQuitEvent event) {
 		Player player = event.getPlayer();
+		// Stop logging for the player, because they're not here anymore
 		CircuitDetector.LOGGING.remove(player.getUniqueId());
 	}
 
-	public void registerViolation(Block b){
-		if(Util.isRedstone(b)){
+	/**
+	 * Register a violation for a block
+	 * 
+	 * @param b The block to register the violation for
+	 */
+	public void registerViolation(Block b) {
+		if (Util.isRedstone(b)) {
 			Location loc = b.getLocation();
-			
+
 			// If this violation is new, give it a count of 1
 			Violation v;
-			if((v = CircuitDetector.getViolation(loc)) == null){
-				v = new Violation(loc, System.currentTimeMillis());
+			if ((v = CircuitDetector.getViolation(loc)) == null) {
+				v = new Violation(loc);
 				CircuitDetector.VIOLATIONS.add(v);
 			}
 			// Add 1 to the violation count
 			else
 				v.addInstance();
+			v.updateCTime();
 			
-			// Send a message to all players who have logging enabled
-			for(UUID uuid : CircuitDetector.LOGGING.keySet()){
-				if(CircuitDetector.LOGGING.get(uuid)){ 
-					Player player = Bukkit.getPlayer(uuid);
-					
-					v.getLogMessage().send(player);;
-				}
-			}
+			broadcastViolationLogMessage(v);
 			
 			// If the threshold is passed, destroy the circuit
-			if(v.getInstances() > cd.THRESHOLD && cd.THRESHOLD != 0){
-				Util.destroyCircuit(b, true);
-				
-				for(UUID uuid : CircuitDetector.LOGGING.keySet()){
-					if(CircuitDetector.LOGGING.get(uuid)){ 
-						Player player = Bukkit.getPlayer(uuid);
-						
-						String formattedLocation = Util.formatLocation(b.getLocation());
-						String msg = BLUE + Util.getDate() + DARK_GRAY + " : " + AQUA + 
-								"Circuit has been destroyed at " + GRAY + formattedLocation + AQUA + ".";
-						
-						player.sendMessage(msg);
-					}
-				}
+			if (v.getInstances() > CircuitDetector.THRESHOLD && CircuitDetector.THRESHOLD != 0) {
+				destroyViolationCircuit(v);
+			}
+		}
+	}
+
+	public void destroyViolationCircuit(Violation v){
+		v.nukeCircuit();
+
+		for (UUID uuid : CircuitDetector.LOGGING.keySet()) {
+			if (CircuitDetector.LOGGING.get(uuid)) {
+				Player player = Bukkit.getPlayer(uuid);
+
+				String formattedLocation = Util.formatLocation(v.getLocation());
+				String msg = BLUE + Util.getDate() + DARK_GRAY + " : " + AQUA + "Circuit has been destroyed at " + GRAY + formattedLocation + AQUA + ".";
+
+				player.sendMessage(msg);
+			}
+		}
+	}
+	
+	public void broadcastViolationLogMessage(Violation v) {
+		// Send a message to all players who have logging enabled
+		for (UUID uuid : CircuitDetector.LOGGING.keySet()) {
+			if (CircuitDetector.LOGGING.get(uuid)) {
+				Player player = Bukkit.getPlayer(uuid);
+				v.getLogMessage().send(player);
 			}
 		}
 	}
